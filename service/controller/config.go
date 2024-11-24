@@ -8,6 +8,7 @@ import (
 type Config struct {
 	ListenIP                  string                           `mapstructure:"ListenIP"`
 	SendIP                    string                           `mapstructure:"SendIP"`
+	TagOverride               string                           `mapstructure:"TagOverride"`
 	UpdatePeriodic            int                              `mapstructure:"UpdatePeriodic"`
 	CertConfig                *mylego.CertConfig               `mapstructure:"CertConfig"`
 	EnableDNS                 bool                             `mapstructure:"EnableDNS"`

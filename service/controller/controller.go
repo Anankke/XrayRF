@@ -608,6 +608,10 @@ func (c *Controller) userInfoMonitor() (err error) {
 }
 
 func (c *Controller) buildNodeTag() string {
+	if len(c.config.TagOverride) > 0 {
+		return c.config.TagOverride
+	}
+
 	return fmt.Sprintf("%s_%s_%d", c.nodeInfo.NodeType, c.config.ListenIP, c.nodeInfo.Port)
 }
 
