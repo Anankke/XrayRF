@@ -3,6 +3,8 @@ name: Build and Release
 on:
   workflow_dispatch:
   push:
+    tags:
+      - "*"
     branches:
       - master
     paths:
@@ -17,12 +19,38 @@ on:
       - "go.mod"
       - "go.sum"
       - ".github/workflows/*.yml"
-  release:
-    types: [ published ]
 
+permissions:
+  contents: write
+  
 jobs:
+  publish:
+    name: Publish release
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Generate release changelog"
+        id: generate-release-changelog
+        uses: janheinrichmerker/action-github-changelog-generator@v2.3
+        with:
+          token: ${{ secrets.GITHUB_PAT }}
+          onlyLastTag: "true"
+          stripHeaders: "true"
+          stripGeneratorNotice: "true"
+
+      - name: "Create GitHub release"
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ github.ref }}
+          body: ${{ steps.generate-release-changelog.outputs.changelog }}
 
   build:
+    needs: [ publish ]
     strategy:
       matrix:
         # Include amd64 on all platforms.
@@ -90,7 +118,9 @@ jobs:
           # END S390X
           # END Other architectures
       fail-fast: false
-
+    permissions:
+      contents: write
+    if: always() && !cancelled() && !failure()
     runs-on: ubuntu-latest
     env:
       GOOS: ${{ matrix.goos }}
@@ -181,11 +211,11 @@ jobs:
           name: XrayR-${{ steps.get_filename.outputs.ASSET_NAME }}
           path: |
             ./XrayR-${{ steps.get_filename.outputs.ASSET_NAME }}/*
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
-        if: github.event_name == 'release'
+        if: github.ref_type == 'tag'
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./XrayR-${{ steps.get_filename.outputs.ASSET_NAME }}.zip*
           tag: ${{ github.ref }}
           file_glob: true
